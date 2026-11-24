@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Explicit namespaces (x-harness & x-harness-sandbox) are set per resource so
+# multi-namespace objects like sandbox NetworkPolicy stay isolated cleanly.
+labels:
+  - includeSelectors: false
+    pairs:
+      app.kubernetes.io/part-of: x-harness
+      app.kubernetes.io/version: "1.4.0"
+
+resources:
+  - 00-namespace.yaml
+  - 01-configmap.yaml
+  - 02-secret.example.yaml
+  - 03-rbac.yaml
+  - 04-job-bootstrap.yaml
+  - 05-deployment-api.yaml
+  - 06-deployment-worker.yaml
+  - 07-deployment-feishu-scheduler.yaml
+  - 08-deployment-web.yaml
+  - 09-ingress.yaml
+  - 10-autoscaling-pdb-netpol.yaml
+
+# Tip: override image registry/tags cleanly without editing each Deployment:
+# images:
+#   - name: registry.example.com/xh/server
+#     newName: your-registry.corp.internal/xh/server
+#     newTag: "1.4.0"
+#   - name: registry.example.com/xh/web
+#     newName: your-registry.corp.internal/xh/web
+#     newTag: "1.4.0"

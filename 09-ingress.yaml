@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: x-harness
+  namespace: x-harness
+  annotations:
+    # Required for SSE streaming (/api/v1/runs/*/events)
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - xh.example.com
+      secretName: xh-tls
+  rules:
+    - host: xh.example.com
+      http:
+        paths:
+          # Feishu webhook events (when Feishu channel runs in HTTP webhook mode)
+          - path: /api/v1/channels/feishu/events
+            pathType: Prefix
+            backend:
+              service:
+                name: x-harness-feishu
+                port:
+                  number: 80
+          # REST API, SSE streams (/api/v1/runs/*), and HMAC Webhook Automations (/api/v1/hooks/automations/*)
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: x-harness-api
+                port:
+                  number: 80
+          # Static Vue 3 SPA (/chat, /workbenches, /decisions, /admin/*)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: x-harness-web
+                port:
+                  number: 80
