@@ -95,8 +95,9 @@ spec:
       app.kubernetes.io/component: web
 ---
 # Zero-Trust Sandbox NetworkPolicy:
-# - Sandboxes may ONLY receive traffic from the x-harness control-plane namespace.
-# - Default-deny ALL egress (blocks RFC1918 private networks, cluster API, and cloud IMDS 169.254.169.254).
+# - Native K8s `pods/exec` flows via kubelet (requires zero Pod network connectivity).
+# - Default-deny ALL ingress & egress for `xh.network_mode=none` sandboxes (blocks public internet,
+#   RFC1918 private networks, cluster API, DNS exfiltration, and cloud IMDS 169.254.169.254).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -105,18 +106,10 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/managed-by: opensandbox
+      xh.managed: "true"
+      xh.network_mode: "none"
   policyTypes:
     - Ingress
     - Egress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: x-harness
-  egress:
-    - ports:
-        - protocol: UDP
-          port: 53
-        - protocol: TCP
-          port: 53
+  ingress: []
+  egress: []

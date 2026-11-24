@@ -30,9 +30,13 @@ data:
   # Optional public S3 download endpoint for presigned links (leave empty to reuse XH_S3_ENDPOINT)
   XH_S3_PUBLIC_ENDPOINT: ""
 
-  # Isolated container sandbox runtime (OpenSandbox in x-harness-sandbox namespace)
-  XH_SANDBOX_PROVIDER: "opensandbox"
-  XH_OPENSANDBOX_URL: "http://opensandbox-server.x-harness-sandbox.svc.cluster.local:8080/v1"
+  # Native Kubernetes Pod sandbox runtime (zero external OpenSandbox/CRD dependency)
+  # Pods are launched directly in x-harness-sandbox namespace with NetworkPolicy air-gap isolation.
+  XH_SANDBOX_PROVIDER: "kubernetes"
+  XH_K8S_SANDBOX_NAMESPACE: "x-harness-sandbox"
+  XH_K8S_SANDBOX_IMAGE_PULL_POLICY: "IfNotPresent"
+  # Comma-separated imagePullSecrets created in x-harness-sandbox namespace for private registries (e.g. "harbor-pull-secret")
+  XH_K8S_SANDBOX_IMAGE_PULL_SECRETS: ""
   XH_DEFAULT_SANDBOX_IMAGE: "registry.example.com/xh/sbx-data:1.0.0"
 
   # Security egress policy (false in production blocks loopback/RFC1918/IMDS SSRF)

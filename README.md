@@ -7,9 +7,9 @@ Production-ready raw Kubernetes manifests (`kubectl apply -k`) implementing the 
 | File | Description |
 | --- | --- |
 | `00-namespace.yaml` | `x-harness` control-plane namespace & `x-harness-sandbox` restricted sandbox namespace |
-| `01-configmap.yaml` | `x-harness-config` (app/S3/OpenSandbox env vars) & `x-harness-web-nginx` (SPA + SSE reverse proxy) |
-| `02-secret.example.yaml` | Sensitive credentials template (DB, Redis, Master Key, S3, OpenSandbox, optional search keys) |
-| `03-rbac.yaml` | Dedicated `ServiceAccount` (`automountServiceAccountToken: false`) |
+| `01-configmap.yaml` | `x-harness-config` (app/S3/native K8s sandbox env vars) & `x-harness-web-nginx` (SPA + SSE reverse proxy) |
+| `02-secret.example.yaml` | Sensitive credentials template (DB, Redis, Master Key, S3, optional search keys) |
+| `03-rbac.yaml` | `x-harness` (zero-privilege SA) & `x-harness-sandbox-ctrl` (least-privilege Role in `x-harness-sandbox` for native K8s Pod sandboxes) |
 | `04-job-bootstrap.yaml` | Idempotent Job running `src/cli.ts bootstrap` (V1–V4 migrations + builtin tools/roles/admin) |
 | `05-deployment-api.yaml` | Stateless API + SSE + Webhook server (`XH_ROLES=api`, 2 replicas) + `Service` |
 | `06-deployment-worker.yaml` | Agent & multi-agent DAG execution worker (`XH_ROLES=worker`, `terminationGracePeriodSeconds: 150`) |
@@ -40,11 +40,16 @@ docker push $REGISTRY/sbx-data:1.0.0
 
 1. Update `XH_PUBLIC_BASE_URL`, `XH_CORS_ORIGINS`, `XH_S3_BUCKET`, `XH_DEFAULT_SANDBOX_IMAGE` in `01-configmap.yaml`, and `host` / `tls.secretName` in `09-ingress.yaml`.
 2. Update image repositories/tags via the `images:` override block in `kustomization.yaml`.
-3. Generate a production master key (`openssl rand -hex 32`) and replace all `CHANGE_ME_*` values in `02-secret.example.yaml` (recommended: replace with External Secrets / Sealed Secrets in production).
+3. If using a private container registry for `sbx-data:1.0.0`, create a pull secret in `x-harness-sandbox` and set `XH_K8S_SANDBOX_IMAGE_PULL_SECRETS` in `01-configmap.yaml`:
+   ```bash
+   kubectl -n x-harness-sandbox create secret docker-registry regcred \
+     --docker-server=<REGISTRY> --docker-username=<USER> --docker-password=<PASS>
+   ```
+4. Generate a production master key (`openssl rand -hex 32`) and replace all `CHANGE_ME_*` values in `02-secret.example.yaml` (recommended: replace with External Secrets / Sealed Secrets in production).
 
 ### 3. Deploy Backing Infrastructure (Optional)
 
-Skip this step if you already have managed PostgreSQL 16 (pgvector), Redis, S3, and OpenSandbox.
+Skip this step if you already have managed PostgreSQL 16 (pgvector), Redis, and S3. Native Kubernetes sandboxes (`XH_SANDBOX_PROVIDER=kubernetes`) require **no OpenSandbox server or CRDs**.
 
 ```bash
 # Replace CHANGE_ME_* passwords inside deploy/k8s/infra/00-infra-stateful.yaml first

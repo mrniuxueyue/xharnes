@@ -125,7 +125,7 @@ spec:
         app.kubernetes.io/name: x-harness
         app.kubernetes.io/component: scheduler
     spec:
-      serviceAccountName: x-harness
+      serviceAccountName: x-harness-sandbox-ctrl
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

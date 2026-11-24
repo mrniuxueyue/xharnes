@@ -356,7 +356,7 @@ data:
     max_ttl_seconds = 14400
 
     [security]
-    api_key_file = "/run/secrets/opensandbox_api_key"
+    api_key_file = "/etc/opensandbox/secrets/opensandbox_api_key"
     drop_capabilities = ["ALL"]
     no_new_privileges = true
 ---
@@ -388,7 +388,7 @@ spec:
               subPath: config.toml
               readOnly: true
             - name: secret
-              mountPath: /run/secrets
+              mountPath: /etc/opensandbox/secrets
               readOnly: true
           resources:
             requests: { cpu: 250m, memory: 256Mi }
