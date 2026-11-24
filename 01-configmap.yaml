@@ -17,6 +17,7 @@ data:
   XH_SESSION_TTL_HOURS: "12"
 
   # PostgreSQL & Redis Streams concurrency tuning
+  XH_AUTO_MIGRATE: "true"
   XH_PG_POOL_MAX: "20"
   XH_RUN_SHARDS: "16"
   XH_REDIS_PREFIX: "xh:"
@@ -39,8 +40,13 @@ data:
   XH_K8S_SANDBOX_IMAGE_PULL_SECRETS: ""
   XH_DEFAULT_SANDBOX_IMAGE: "registry.example.com/xh/sbx-data:1.0.0"
 
-  # Security egress policy (false in production blocks loopback/RFC1918/IMDS SSRF)
+  # Sandbox-external Credential Egress Proxy (Zero-Secret Sandbox: real cookies stay in Worker RAM, never enter sandbox)
+  XH_EGRESS_PROXY_ENABLED: "true"
+  XH_EGRESS_PROXY_PORT: "8081"
+
+  # Security egress policy (false in production blocks loopback/RFC1918/IMDS SSRF and plain HTTP upstream)
   XH_ALLOW_PRIVATE_EGRESS: "false"
+  XH_ALLOW_HTTP_EGRESS: "false"
   XH_FEISHU_ENABLED: "true"
 
   # Optional OpenTelemetry OTLP trace exporter (leave empty to disable)

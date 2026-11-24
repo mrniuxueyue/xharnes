@@ -113,3 +113,30 @@ spec:
     - Egress
   ingress: []
   egress: []
+---
+# Pinpoint Egress Policy for Zero-Secret Sandbox Credential Egress Proxy:
+# Allows sandbox Pods ONLY to reach the internal Credential Egress Proxy port (8081) on x-harness-worker
+# via Pod IP (no DNS egress required; direct internet, internal ERP, cluster API, and IMDS remain blocked).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: x-harness-sandbox-egress-proxy
+  namespace: x-harness-sandbox
+spec:
+  podSelector:
+    matchLabels:
+      xh.managed: "true"
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: x-harness
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: x-harness
+              app.kubernetes.io/component: worker
+      ports:
+        - protocol: TCP
+          port: 8081

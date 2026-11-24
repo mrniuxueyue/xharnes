@@ -1,4 +1,4 @@
-# Idempotent schema migration (V1–V4) + production bootstrap (tenant, roles, admin user, 12 builtin tools).
+# Idempotent schema migration (V1–V5) + production bootstrap (tenant, roles, admin user, 12 builtin tools).
 # Safe to re-run on upgrades; delete previous Job before re-applying (`kubectl delete job -n x-harness x-harness-bootstrap --ignore-not-found`).
 apiVersion: batch/v1
 kind: Job

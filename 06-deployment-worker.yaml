@@ -45,12 +45,17 @@ spec:
         - name: worker
           image: registry.example.com/xh/server:1.4.0
           imagePullPolicy: IfNotPresent
+          ports:
+            - name: egress-proxy
+              containerPort: 8081
           envFrom:
             - configMapRef:
                 name: x-harness-config
           env:
             - name: XH_ROLES
               value: "worker"
+            - name: XH_POD_IP
+              valueFrom: { fieldRef: { fieldPath: status.podIP } }
             - name: XH_PG_WRITE_URL
               valueFrom: { secretKeyRef: { name: x-harness-secrets, key: pg_write_url } }
             - name: XH_PG_READ_URL
