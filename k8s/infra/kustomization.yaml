@@ -1,0 +1,7 @@
+# Optional all-in-one backing infrastructure overlay (PostgreSQL+pgvector, Redis Cache, Redis Streams, MinIO S3, OpenSandbox).
+# For managed cloud RDS/ElastiCache/S3 deployments, skip this directory and apply `deploy/k8s` directly.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - 00-infra-stateful.yaml

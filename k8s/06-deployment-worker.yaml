@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: x-harness-worker
+  namespace: x-harness
+  labels:
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: x-harness
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: x-harness
+        app.kubernetes.io/component: worker
+    spec:
+      serviceAccountName: x-harness-sandbox-ctrl
+      # Allow in-flight LLM turns / parallel specialist DAG runs to finish & checkpoint cleanly on SIGTERM
+      terminationGracePeriodSeconds: 150
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: x-harness
+              app.kubernetes.io/component: worker
+      containers:
+        - name: worker
+          image: registry.example.com/xh/server:1.4.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: egress-proxy
+              containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: x-harness-config
+          env:
+            - name: XH_ROLES
+              value: "worker"
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=2560"
+            - name: XH_POD_IP
+              valueFrom: { fieldRef: { fieldPath: status.podIP } }
+            - name: XH_PG_WRITE_URL
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: pg_write_url } }
+            - name: XH_PG_READ_URL
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: pg_read_url, optional: true } }
+            - name: XH_REDIS_CACHE_URL
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: redis_cache_url } }
+            - name: XH_REDIS_STREAMS_URL
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: redis_streams_url } }
+            - name: XH_MASTER_KEY
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: xh_master_key } }
+            - name: XH_S3_ENDPOINT
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: s3_endpoint, optional: true } }
+            - name: XH_S3_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: s3_access_key, optional: true } }
+            - name: XH_S3_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: s3_secret_key, optional: true } }
+            - name: XH_OPENSANDBOX_API_KEY
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: opensandbox_api_key, optional: true } }
+            - name: TAVILY_API_KEY
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: tavily_api_key, optional: true } }
+            - name: SERPER_API_KEY
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: serper_api_key, optional: true } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: 500m, memory: 1Gi }
+            limits: { cpu: "2", memory: 4Gi }
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

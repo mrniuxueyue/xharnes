@@ -1,0 +1,62 @@
+# Idempotent schema migration (V1–V5) + production bootstrap (tenant, roles, admin user, 12 builtin tools).
+# Safe to re-run on upgrades; delete previous Job before re-applying (`kubectl delete job -n x-harness x-harness-bootstrap --ignore-not-found`).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: x-harness-bootstrap
+  namespace: x-harness
+  labels:
+    app.kubernetes.io/component: bootstrap
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: x-harness
+        app.kubernetes.io/component: bootstrap
+    spec:
+      serviceAccountName: x-harness
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: bootstrap
+          image: registry.example.com/xh/server:1.4.0
+          imagePullPolicy: IfNotPresent
+          command: ["node", "--import", "tsx", "src/cli.ts", "bootstrap"]
+          envFrom:
+            - configMapRef:
+                name: x-harness-config
+          env:
+            - name: XH_PG_WRITE_URL
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: pg_write_url } }
+            - name: XH_PG_READ_URL
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: pg_read_url, optional: true } }
+            - name: XH_REDIS_CACHE_URL
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: redis_cache_url } }
+            - name: XH_REDIS_STREAMS_URL
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: redis_streams_url } }
+            - name: XH_MASTER_KEY
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: xh_master_key } }
+            - name: XH_SEED_ADMIN_PASSWORD
+              valueFrom: { secretKeyRef: { name: x-harness-secrets, key: xh_seed_admin_password, optional: true } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: 200m, memory: 256Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
